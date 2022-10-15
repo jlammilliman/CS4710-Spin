@@ -52,48 +52,48 @@ active [N] proctype Swap() {
     // Track active PIDS 
 	activePids[currentPid] = false;
     startSwapProcs == true; // I really love that we can halt things like this
-    TRY: do
-            ::  (activePids[currentPid] == false) -> 
-                        select (j: 0 .. N); // Select docs -> http://spinroot.com/spin/Man/select.html
+    do
+        ::  (activePids[currentPid] == false) -> 
+                    select (j: 0 .. N); // Select docs -> http://spinroot.com/spin/Man/select.html
 
-                        // The atomic blocks set our active pids; atomic so no two pids get set to the same address in 'activePids'
-                        atomic {
-                            if  // Set current PID 'i' to be an active boi
-                                :: activePids[pidNum[i]] == false -> pidNum[i] = currentPid;
-                                :: else -> skip;
-                            fi;
-                        }
-                        do      // i is already (hopefully) set as active, and j should be < N 
-                            :: ((j == i) || (j == N)) -> select (j: 0 .. N);
-                            :: else -> break;
-                        od;
-                        atomic {
-                            if  // Set current PID 'j' to be an active boi
-                                :: activePids[pidNum[j]] == false -> pidNum[j] = currentPid;
-                                :: else -> skip;
-                            fi;
-                        }
-                        atomic {
-                            if  // If we have a valid swap, set it active
-                                :: ((pidNum[i] == currentPid) && (pidNum[j] == currentPid)) -> activePids[currentPid] = true;
-                                :: else -> skip;
-                            fi;
-                        }
-            // If we are swapping, let it be
-            :: (activePids[currentPid] == true) && 
-                ( pidNum[i] == currentPid) && (pidNum[j] == currentPid) 
-                    -> break;
-            /*  
-                If the PIDS are done, free them from service
-                Running atomically so we can force termination before another process clashes and retries 
-                even though the cell in A is not being visited
-            */
-            :: atomic {
-                ( pidNum[i] != currentPid) || 
-                    (pidNum[j] != currentPid) 
-                        -> activePids[currentPid] = false;
-            }
-        od;
+                    // The atomic blocks set our active pids; atomic so no two pids get set to the same address in 'activePids'
+                    atomic {
+                        if  // Set current PID 'i' to be an active boi
+                            :: activePids[pidNum[i]] == false -> pidNum[i] = currentPid;
+                            :: else -> skip;
+                        fi;
+                    }
+                    do      // i is already (hopefully) set as active, and j should be < N 
+                        :: ((j == i) || (j == N)) -> select (j: 0 .. N);
+                        :: else -> break;
+                    od;
+                    atomic {
+                        if  // Set current PID 'j' to be an active boi
+                            :: activePids[pidNum[j]] == false -> pidNum[j] = currentPid;
+                            :: else -> skip;
+                        fi;
+                    }
+                    atomic {
+                        if  // If we have a valid swap, set it active
+                            :: ((pidNum[i] == currentPid) && (pidNum[j] == currentPid)) -> activePids[currentPid] = true;
+                            :: else -> skip;
+                        fi;
+                    }
+        // If we are swapping, let it be
+        :: (activePids[currentPid] == true) && 
+            ( pidNum[i] == currentPid) && (pidNum[j] == currentPid) 
+                -> break;
+        /*  
+            If the PIDS are done, free them from service
+            Running atomically so we can force termination before another process clashes and retries 
+            even though the cell in A is not being visited
+        */
+        :: atomic {
+            ( pidNum[i] != currentPid) || 
+                (pidNum[j] != currentPid) 
+                    -> activePids[currentPid] = false;
+        }
+    od;
 
     // Do the roar
     int swap;
