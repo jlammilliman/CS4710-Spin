@@ -40,7 +40,7 @@ int pidNum[N];
 bool startSwapProcs = false; // When set to true, all processes will fire
 
 // LTL determinates
-int duplicates;
+int duplicates = 0;
 int sCount = 0;
 
 // Instatiate Swap Processes - Currently each process performs a single swap
@@ -97,11 +97,11 @@ active [N] proctype Swap() {
 
     // Do the roar
     int swap;
-    CS: swap = A[j];
-        A[j] = A[i];
-        A[i] = swap;
-        activePids[currentPid] = false;
-        sCount++;
+    swap = A[j];
+    A[j] = A[i];
+    A[i] = swap;
+    activePids[currentPid] = false;
+    sCount++;
 }
 
 // If at least one process terminated (hopefully all do), show sCount
@@ -124,7 +124,6 @@ init {
 			break;
 	od;
 
-
     /*
         Once we have performed N swaps, each process has terminated, so check our results for clashes
         This should be replaced with logic to perform any number of swaps for the extra credit, 
@@ -137,10 +136,12 @@ init {
 		:: (j < N) -> 		
 			i = j + 1;
 			duplicates = 0;
+            printf("\n%d", A[j])
 			do
 				:: (i < N) -> 
 						if // If we found one, log it
 							:: A[i] == A[j] -> duplicates++;
+                            printf("\nDUPE??\n"); // At this stage, this print statement is unreachable
 							:: else -> skip;
 						fi;
 						i++;
@@ -153,5 +154,5 @@ init {
 			j++;
 		:: else -> break;
 	od;
-
+    printf("\n")
 }
