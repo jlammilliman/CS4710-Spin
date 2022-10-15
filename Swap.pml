@@ -24,28 +24,29 @@
             asynchronously (non-serialzable)
 */
 
-#define N 10 
+#define N 10 // Number of process + Size of A
 
+// Set LTL Definitions
 #define NoDuplication (duplicates == 0)
 #define SwapCount (sCount == N)
-#define Termination (np_ == 0) // referemce -> https://www.cse.msu.edu/~cse470/PromelaManual/np_.html
+#define Termination (np_ == 0) // docs -> https://www.cse.msu.edu/~cse470/PromelaManual/np_.html
 
 // Specification : An array A[] of distinct non-negative integers of size N
 int A[N]; 
 
-// willingness to go to CS
+// Tracks active pids
 bool activePids[N];
-
-//for duplication finding
-int duplicates;
 int pidNum[N];
 bool startSwapProcs = false; // When set to true, all processes will fire
+
+// LTL determinates
+int duplicates;
 int sCount = 0;
 
-// Main swap
+// Instatiate Swap Processes - Currently each process performs a single swap
 active [N] proctype Swap() {
 	int j = 0;
-	int currentPid = _pid; // Parametrize by '_pid', not using _pid directly because it's a protected keyword
+	int currentPid = _pid; // Parametrize by '_pid', not using _pid directly because it's protected
 	int i = currentPid;
 
     // Track active PIDS 
@@ -53,8 +54,7 @@ active [N] proctype Swap() {
     startSwapProcs == true; // I really love that we can halt things like this
     TRY: do
             ::  (activePids[currentPid] == false) -> 
-                        // Select reference -> http://spinroot.com/spin/Man/select.html
-                        select (j: 0 .. N);
+                        select (j: 0 .. N); // Select docs -> http://spinroot.com/spin/Man/select.html
 
                         // The atomic blocks set our active pids; atomic so no two pids get set to the same address in 'activePids'
                         atomic {
@@ -83,8 +83,11 @@ active [N] proctype Swap() {
             :: (activePids[currentPid] == true) && 
                 ( pidNum[i] == currentPid) && (pidNum[j] == currentPid) 
                     -> break;
-            // If the PIDS are done, free them from service
-            // Running atomically so we can force kill it from service before performing another swap and clashing with an inactive boi
+            /*  
+                If the PIDS are done, free them from service
+                Running atomically so we can force termination before another process clashes and retries 
+                even though the cell in A is not being visited
+            */
             :: atomic {
                 ( pidNum[i] != currentPid) || 
                     (pidNum[j] != currentPid) 
@@ -92,7 +95,7 @@ active [N] proctype Swap() {
             }
         od;
 
-    // Do the swap
+    // Do the roar
     int swap;
     CS: swap = A[j];
         A[j] = A[i];
@@ -101,30 +104,33 @@ active [N] proctype Swap() {
         sCount++;
 }
 
-//ltl dup { [] (Termination -> NoDuplication) }
+// If at least one process terminated (hopefully all do), show sCount
 ltl SwapLTL { [] (Termination -> SwapCount) }
 
 init {
 	int j = 0;
 	int i = 0;
 
-    // Assign integers to A from [0-(N-1)]
 	do
+        // Assign integers to A from [0-(N-1)]
 		:: i < N ->    
 			A[i] = i;
 			pidNum[i] = i;	
 			i++;
+        
+        // Force start all swap processes
 		:: i >= N -> 
 			startSwapProcs = true;
 			break;
 	od;
 
+
     /*
         Once we have performed N swaps, each process has terminated, so check our results for clashes
         This should be replaced with logic to perform any number of swaps for the extra credit, 
-        but for now just testing the functional logic
+        but for now just testing the functional bits
     */
-	sCount == N; 
+	sCount == N; // Wait until all processes are done
 
     // Identify duplicates
 	do 
@@ -133,15 +139,15 @@ init {
 			duplicates = 0;
 			do
 				:: (i < N) -> 
-						if
+						if // If we found one, log it
 							:: A[i] == A[j] -> duplicates++;
 							:: else -> skip;
 						fi;
 						i++;
 				:: else -> break;
 			od;
-			if
-				:: (duplicates >= 1) -> break; 
+			if  // Fail on any duplicates, as this breaks specification
+				:: (duplicates > 0) -> break; 
 				:: else -> skip;
 			fi;
 			j++;
