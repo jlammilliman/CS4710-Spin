@@ -36,7 +36,7 @@ int A[N];
 
 // Tracks active pids
 bool activePids[N];
-int pidNum[N];
+int reservedCells[N];
 bool startSwapProcs = false; // When set to true, all processes will fire
 
 // LTL determinates
@@ -60,7 +60,7 @@ active [N] proctype Swap() {
                     // The atomic blocks set our active pids; atomic so no two pids get set to the same address in 'activePids'
                     atomic {
                         if  // Set current PID 'i' to be an active boi
-                            :: activePids[pidNum[i]] == false -> pidNum[i] = currentPid;
+                            :: activePids[reservedCells[i]] == false -> reservedCells[i] = currentPid;
                             :: else -> skip;
                         fi;
                     }
@@ -70,19 +70,19 @@ active [N] proctype Swap() {
                     od;
                     atomic {
                         if  // Set current PID 'j' to be an active boi
-                            :: activePids[pidNum[j]] == false -> pidNum[j] = currentPid;
+                            :: activePids[reservedCells[j]] == false -> reservedCells[j] = currentPid;
                             :: else -> skip;
                         fi;
                     }
                     atomic {
                         if  // If we have a valid swap, set it active
-                            :: ((pidNum[i] == currentPid) && (pidNum[j] == currentPid)) -> activePids[currentPid] = true;
+                            :: ((reservedCells[i] == currentPid) && (reservedCells[j] == currentPid)) -> activePids[currentPid] = true;
                             :: else -> skip;
                         fi;
                     }
         // If we are swapping, let it be
         :: (activePids[currentPid] == true) && 
-            ( pidNum[i] == currentPid) && (pidNum[j] == currentPid) 
+            ( reservedCells[i] == currentPid) && (reservedCells[j] == currentPid) 
                 -> break;
         /*  
             If the swap is done, free cells from service
@@ -90,8 +90,8 @@ active [N] proctype Swap() {
             even though the cell in A is not being accessed
         */
         :: atomic {
-            ( pidNum[i] != currentPid) || 
-                (pidNum[j] != currentPid) 
+            ( reservedCells[i] != currentPid) || 
+                (reservedCells[j] != currentPid) 
                     -> activePids[currentPid] = false;
         }
     od;
@@ -116,7 +116,7 @@ init {
         // Assign integers to A from [0-(N-1)]
 		:: i < N ->    
 			A[i] = i;
-			pidNum[i] = i;	
+			reservedCells[i] = i;	
 			i++;
         
         // Force start all swap processes
