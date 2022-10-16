@@ -53,6 +53,7 @@ active [N] proctype Swap() {
 	activePids[currentPid] = false;
     startSwapProcs == true; // I really love that we can halt things like this
     do
+        // Since we are using our own PID as the index for the first cell to access, wait for whoever is currently accessing it
         ::  (activePids[currentPid] == false) -> 
                     select (j: 0 .. N); // Select docs -> http://spinroot.com/spin/Man/select.html
 
@@ -63,7 +64,7 @@ active [N] proctype Swap() {
                             :: else -> skip;
                         fi;
                     }
-                    do      // i is already (hopefully) set as active, and j should be < N 
+                    do      // i is already (hopefully) set as active, and j should be in the range of [0 - N] 
                         :: ((j == i) || (j == N)) -> select (j: 0 .. N);
                         :: else -> break;
                     od;
@@ -84,9 +85,9 @@ active [N] proctype Swap() {
             ( pidNum[i] == currentPid) && (pidNum[j] == currentPid) 
                 -> break;
         /*  
-            If the PIDS are done, free them from service
+            If the swap is done, free cells from service
             Running atomically so we can force termination before another process clashes and retries 
-            even though the cell in A is not being visited
+            even though the cell in A is not being accessed
         */
         :: atomic {
             ( pidNum[i] != currentPid) || 
