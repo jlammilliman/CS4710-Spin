@@ -13,8 +13,8 @@
     processes that have access to an array A[] of
     distinct non-negative integers. Each process
     has access to A, and can perform swaps on A
-    as long as no two processes are trying 
-    attempting to access similar cells within A. 
+    as long as no two processes are attempting
+    to access similar cells within A. 
 
     ============ Specifications =================
     1). Follow SIMD
@@ -104,8 +104,8 @@ active [N] proctype Swap() {
     sCount++;
 }
 
-// If at least one process terminated (hopefully all do), show sCount
-ltl SwapLTL { [] (Termination -> SwapCount) }
+// All processes should terminate, and no duplicates should exist within A
+ltl SwapLTL { [] ( (Termination && NoDuplication) -> SwapCount) }
 
 init {
 	int j = 0;
@@ -154,5 +154,5 @@ init {
 			j++;
 		:: else -> break;
 	od;
-    printf("\n")
+    printf("\nDuplicates: %d \n", duplicates);
 }
