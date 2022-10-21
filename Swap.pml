@@ -24,12 +24,12 @@
             asynchronously (non-serialzable)
 */
 
-#define N 10 // Number of process + Size of A
+#define N 3 // Number of process + Size of A
 
 // Set LTL Definitions
 #define NoDuplication (duplicates == 0)
 #define SwapCount (sCount == N)
-#define Termination (np_ == 0) // docs -> https://www.cse.msu.edu/~cse470/PromelaManual/np_.html
+#define Termination (_nr_pr == 0) // SWAPPING THIS WITH A 1 fixes everything when you run it with [spin -run -a spin.pml]
 
 // Specification : An array A[] of distinct non-negative integers of size N
 int A[N]; 
@@ -42,6 +42,9 @@ bool startSwapProcs = false; // When set to true, all processes will fire
 // LTL determinates
 int duplicates = 0;
 int sCount = 0;
+
+// All processes should terminate, and no duplicates should exist within A
+ltl SwapLTL { [] ( Termination -> NoDuplication && SwapCount) }
 
 // Instatiate Swap Processes - Currently each process performs a single swap
 active [N] proctype Swap() {
@@ -105,9 +108,6 @@ active [N] proctype Swap() {
     sCount++;
 }
 
-// All processes should terminate, and no duplicates should exist within A
-ltl SwapLTL { [] ( (Termination && NoDuplication) -> SwapCount) }
-
 init {
 	int j = 0;
 	int i = 0;
@@ -141,8 +141,8 @@ init {
 			do
 				:: (i < N) -> 
 						if // If we found one, log it
-							:: A[i] == A[j] -> duplicates++;
-                            printf("\nDUPE??\n"); // At this stage, this print statement is unreachable
+							// :: A[i] == A[j] -> duplicates++;
+                            // printf("\nDUPE??\n"); // At this stage, this print statement is unreachable
 							:: else -> skip;
 						fi;
 						i++;
